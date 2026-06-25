@@ -1,4 +1,4 @@
-name: SSH Runner with SOCKS Proxy
+name: SSH Runner com Bore
 
 on:
   workflow_dispatch:
@@ -6,11 +6,12 @@ on:
 jobs:
   runner:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Instalar SSH e dependências
+      - name: Instalar dependências
         run: |
           sudo apt update
-          sudo apt install -y openssh-server ufw curl net-tools
+          sudo apt install -y openssh-server curl
 
       - name: Configurar SSH
         run: |
@@ -19,28 +20,33 @@ jobs:
           chmod 700 ~/.ssh
           chmod 600 ~/.ssh/authorized_keys
 
-          # Configurações recomendadas
+          # Configurações do SSH
           sudo sed -i 's/#PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config
           sudo sed -i 's/#PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config
           sudo sed -i 's/#AllowTcpForwarding.*/AllowTcpForwarding yes/' /etc/ssh/sshd_config
-          sudo sed -i 's/#PermitTunnel.*/PermitTunnel yes/' /etc/ssh/sshd_config
           echo "AllowUsers runner" | sudo tee -a /etc/ssh/sshd_config
 
           sudo systemctl restart ssh
 
-      - name: Liberar portas no firewall
+      - name: Instalar e iniciar Bore
         run: |
-          sudo ufw --force reset
-          sudo ufw default deny incoming
-          sudo ufw default allow outgoing
-          sudo ufw allow 22/tcp
-          sudo ufw --force enable
-          
-      - name: Mostrar informações
-        run: |
-          echo "IP Público: $(curl -s ifconfig.me)"
-          echo "Usuário: $(whoami)"
-          ip addr show eth0
+          # Baixar Bore (versão mais recente)
+          curl -L https://github.com/ekzhang/bore/releases/latest/download/bore-linux-x86_64.tar.gz -o bore.tar.gz
+          tar -xzf bore.tar.gz
+          chmod +x bore
 
-      - name: Manter vivo
-        run: sleep 21600
+          echo "🚀 Iniciando túnel Bore..."
+          ./bore local 22 --to bore.pub > bore.log 2>&1 &
+          
+          sleep 6
+
+          echo "======================================"
+          echo "✅ MÁQUINA PRONTA PARA CONEXÃO!"
+          echo "IP Público: $(curl -s ifconfig.me)"
+          echo ""
+          echo "=== Link do Bore ==="
+          cat bore.log | grep -o 'bore.pub:[0-9]*' | head -n 1
+          echo "======================================"
+
+      - name: Manter runner vivo
+        run: sleep 21600  # 6 horas
