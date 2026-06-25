@@ -20,7 +20,6 @@ jobs:
           chmod 700 ~/.ssh
           chmod 600 ~/.ssh/authorized_keys
 
-          # Configurações do SSH
           sudo sed -i 's/#PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config
           sudo sed -i 's/#PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config
           sudo sed -i 's/#AllowTcpForwarding.*/AllowTcpForwarding yes/' /etc/ssh/sshd_config
@@ -30,23 +29,23 @@ jobs:
 
       - name: Instalar e iniciar Bore
         run: |
-          # Baixar Bore (versão mais recente)
-          curl -L https://github.com/ekzhang/bore/releases/latest/download/bore-linux-x86_64.tar.gz -o bore.tar.gz
+          # Download corrigido
+          curl -L -o bore.tar.gz https://github.com/ekzhang/bore/releases/latest/download/bore-linux-x86_64.tar.gz
           tar -xzf bore.tar.gz
           chmod +x bore
-
+          
           echo "🚀 Iniciando túnel Bore..."
           ./bore local 22 --to bore.pub > bore.log 2>&1 &
           
-          sleep 6
+          sleep 8
 
           echo "======================================"
-          echo "✅ MÁQUINA PRONTA PARA CONEXÃO!"
-          echo "IP Público: $(curl -s ifconfig.me)"
+          echo "✅ MÁQUINA PRONTA!"
+          echo "IP: $(curl -s ifconfig.me)"
           echo ""
-          echo "=== Link do Bore ==="
-          cat bore.log | grep -o 'bore.pub:[0-9]*' | head -n 1
+          echo "Link Bore:"
+          grep -o 'bore.pub:[0-9]*' bore.log | head -n 1
           echo "======================================"
 
       - name: Manter runner vivo
-        run: sleep 21600  # 6 horas
+        run: sleep 21600
