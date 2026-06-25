@@ -13,25 +13,37 @@ jobs:
           sudo apt update
           sudo apt install -y openssh-server curl
 
-      - name: Configurar SSH
+      - name: Configurar SSH com chave pública
         run: |
+          # Criar diretório com permissões corretas
           mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PUBLIC_KEY }}" >> ~/.ssh/authorized_keys
           chmod 700 ~/.ssh
+
+          # Adicionar a chave pública (com tratamento de formatação)
+          echo "${{ secrets.SSH_PUBLIC_KEY }}" > ~/.ssh/authorized_keys
           chmod 600 ~/.ssh/authorized_keys
 
+          # Configurações importantes do SSH
           sudo sed -i 's/#PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config
           sudo sed -i 's/#PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config
+          sudo sed -i 's/#PubkeyAuthentication.*/PubkeyAuthentication yes/' /etc/ssh/sshd_config
+          sudo sed -i 's/#AuthorizedKeysFile.*/AuthorizedKeysFile .ssh\/authorized_keys/' /etc/ssh/sshd_config
           sudo sed -i 's/#AllowTcpForwarding.*/AllowTcpForwarding yes/' /etc/ssh/sshd_config
+
           echo "AllowUsers runner" | sudo tee -a /etc/ssh/sshd_config
 
+          # Reiniciar SSH
           sudo systemctl restart ssh
+
+          echo "=== Verificação SSH ==="
+          ls -la ~/.ssh/
+          cat ~/.ssh/authorized_keys
 
       - name: Instalar e iniciar Bore
         run: |
-          # Pegar versão mais recente
+          # Baixar Bore de forma confiável
           BORE_VERSION=$(curl -s https://api.github.com/repos/ekzhang/bore/releases/latest | grep '"tag_name"' | cut -d '"' -f 4)
-          echo "Baixando Bore versão: $BORE_VERSION"
+          echo "Baixando Bore $BORE_VERSION"
           
           curl -L -o bore.tar.gz "https://github.com/ekzhang/bore/releases/download/${BORE_VERSION}/bore-${BORE_VERSION}-x86_64-unknown-linux-musl.tar.gz"
           
