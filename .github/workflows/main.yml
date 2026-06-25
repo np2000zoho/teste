@@ -6,27 +6,46 @@ on:
 jobs:
   runner:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Instalar SSH
+      - name: Instalar SSH e ferramentas
         run: |
           sudo apt update
-          sudo apt install -y openssh-server
+          sudo apt install -y openssh-server net-tools
 
       - name: Configurar chave SSH
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_PUBLIC_KEY }}" >> ~/.ssh/authorized_keys
+          chmod 700 ~/.ssh
           chmod 600 ~/.ssh/authorized_keys
 
-      - name: Iniciar SSH
+      - name: Configurar SSH (permitir root e passwordless)
         run: |
-          sudo service ssh start
+          sudo sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
+          sudo sed -i 's/#PasswordAuthentication yes/PasswordAuthentication no/' /etc/ssh/sshd_config
+          echo "AllowUsers runner" | sudo tee -a /etc/ssh/sshd_config
+          sudo systemctl restart ssh
 
-      - name: Mostrar IP
+      - name: Habilitar portas no firewall (22 e 1080)
         run: |
-          curl ifconfig.me
+          sudo apt install -y ufw
+          sudo ufw --force reset
+          sudo ufw default deny incoming
+          sudo ufw default allow outgoing
+          sudo ufw allow 22/tcp
+          sudo ufw allow 1080/tcp
+          sudo ufw --force enable
+          sudo ufw status verbose
+
+      - name: Mostrar IP público
+        run: |
+          echo "IP Público:"
+          curl -s ifconfig.me
+          echo -e "\nPortas abertas:"
+          sudo ufw status
+          hostname -I
+        continue-on-error: true
 
       - name: Manter runner vivo
         run: |
-          sleep 21600
+          sleep 21600  # 6 horas
