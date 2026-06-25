@@ -29,8 +29,12 @@ jobs:
 
       - name: Instalar e iniciar Bore
         run: |
-          # Download corrigido
-          curl -L -o bore.tar.gz https://github.com/ekzhang/bore/releases/latest/download/bore-linux-x86_64.tar.gz
+          # Pegar versão mais recente
+          BORE_VERSION=$(curl -s https://api.github.com/repos/ekzhang/bore/releases/latest | grep '"tag_name"' | cut -d '"' -f 4)
+          echo "Baixando Bore versão: $BORE_VERSION"
+          
+          curl -L -o bore.tar.gz "https://github.com/ekzhang/bore/releases/download/${BORE_VERSION}/bore-${BORE_VERSION}-x86_64-unknown-linux-musl.tar.gz"
+          
           tar -xzf bore.tar.gz
           chmod +x bore
           
@@ -43,8 +47,8 @@ jobs:
           echo "✅ MÁQUINA PRONTA!"
           echo "IP: $(curl -s ifconfig.me)"
           echo ""
-          echo "Link Bore:"
-          grep -o 'bore.pub:[0-9]*' bore.log | head -n 1
+          echo "=== Link do Bore ==="
+          grep -o 'bore.pub:[0-9]*' bore.log | head -n 1 || cat bore.log
           echo "======================================"
 
       - name: Manter runner vivo
